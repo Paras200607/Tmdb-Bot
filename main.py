@@ -16,12 +16,23 @@ def get_movie_data(query):
     params = {
         "api_key": TMDB_API_KEY,
         "query": query,
-        "language": "en-US"  # Fetch results in English
+        "language": "en-US"  # Ensure English results
     }
     response = requests.get(url, params=params)
     if response.status_code == 200 and response.json()["results"]:
         return response.json()["results"][0]
     return None
+
+def get_backdrops(movie_id):
+    url = f"{TMDB_BASE_URL}/movie/{movie_id}/images"
+    params = {
+        "api_key": TMDB_API_KEY,
+        "language": "en-US",
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        return response.json().get("backdrops", [])
+    return []
 
 async def poster(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = " ".join(context.args)
@@ -41,9 +52,10 @@ async def backdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Please provide a movie name.")
         return
     movie = get_movie_data(query)
-    if movie and movie.get("backdrop_path"):
-        # Fetch multiple backdrops
-        backdrops = movie.get("backdrops", [])
+    if movie:
+        movie_id = movie["id"]
+        backdrops = get_backdrops(movie_id)
+        
         if backdrops:
             # Send up to 10 backdrops
             count = min(len(backdrops), 10)
